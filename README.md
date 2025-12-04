@@ -6,6 +6,46 @@ Le sujet propose une base qui est un pipeline ETL complet qui couvre la récupé
 
 Le but du sujet de travaux pratiques est d'ajouter à ce pipeline des données de consolidation, de dimensions et de faits pour la ville de Paris, ainsi que les données provenant d'autres grandes villes de France. Ces données sont disponibles pour les villes de Nantes, de Toulouse ou encore de Strasbourg. Il faudra aussi enrichir ces données avec les données descriptives des villes de France, via une API de l'État français open-source.
 
+
+## Architecture du projet
+
+Data_Eng_Project/
+│
+├── src/
+│   ├── data_ingestion.py
+│   ├── data_consolidation.py
+│   ├── data_agregation.py
+│   ├── main.py
+│
+├── data/
+│   ├── raw_data/
+│   │   └── YYYY-MM-DD/
+│   │       ├── paris_realtime_bicycle_data.json
+│   │       ├── nantes_realtime_bicycle_data.json
+│   ├── duckdb/
+│       └── mobility_analysis.duckdb
+│
+├── data/sql_statements/
+│   ├── create_consolidate_tables.sql
+│   ├── create_agregate_tables.sql
+│
+└── README.md
+
+## Exécution du pipeline
+
+git clone <repo>
+cd Data_Eng_Project
+
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# OU
+.\.venv\Scripts\activate   # Windows
+
+pip install -r requirements.txt
+
+python src/main.py
+
+
 ## Explication du code existant
 
 Le projet est découpé en 3 parties :
@@ -214,6 +254,7 @@ FROM DIM_CITY dm INNER JOIN (
 ) tmp ON dm.ID = tmp.CITY_ID
 WHERE lower(dm.NAME) in ('paris', 'nantes', 'vincennes', 'toulouse');
 
+![alt text](image.png)
 -- Nb de vélos disponibles en moyenne dans chaque station
 SELECT ds.name, ds.code, ds.address, tmp.avg_dock_available
 FROM DIM_STATION ds JOIN (
@@ -222,7 +263,7 @@ FROM DIM_STATION ds JOIN (
     GROUP BY station_id
 ) AS tmp ON ds.id = tmp.station_id;
 ```
-
+![alt text](image-1.png)
 Vous pouvez utiliser la commande `duckdb data/duckdb/mobility_analysis.duckdb` pour ouvrir l'invite de commande DuckDB. 
 
 Le sujet devra être rendu sous la forme d'un repository GitHub avec les instructions nécéssaire pour faire fonctionner correctement le projet. Le projet peut être fait seul ou en duo.
