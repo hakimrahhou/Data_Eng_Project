@@ -45,6 +45,26 @@ pip install -r requirements.txt
 
 python src/main.py
 
+## 📡 Schéma du pipeline
+        +---------------+
+        |  Ingestion    |
+        | (APIs Paris & |
+        |   Nantes)     |
+        +-------+-------+
+                |
+       raw JSON files
+                |
+        +-------v-------+
+        | Consolidation |
+        |  (DuckDB)     |
+        +-------+-------+
+                |
+        DIM + FACT tables
+                |
+        +-------v-------+
+        |  Agrégation   |
+        |   (DW)        |
+        +---------------+
 
 ## Explication du code existant
 
@@ -254,7 +274,9 @@ FROM DIM_CITY dm INNER JOIN (
 ) tmp ON dm.ID = tmp.CITY_ID
 WHERE lower(dm.NAME) in ('paris', 'nantes', 'vincennes', 'toulouse');
 
-![alt text](image.png)
+![Pr](images/img1.png)
+
+
 -- Nb de vélos disponibles en moyenne dans chaque station
 SELECT ds.name, ds.code, ds.address, tmp.avg_dock_available
 FROM DIM_STATION ds JOIN (
@@ -263,7 +285,7 @@ FROM DIM_STATION ds JOIN (
     GROUP BY station_id
 ) AS tmp ON ds.id = tmp.station_id;
 ```
-![alt text](image-1.png)
+![Pr](images/img2.png)
 Vous pouvez utiliser la commande `duckdb data/duckdb/mobility_analysis.duckdb` pour ouvrir l'invite de commande DuckDB. 
 
 Le sujet devra être rendu sous la forme d'un repository GitHub avec les instructions nécéssaire pour faire fonctionner correctement le projet. Le projet peut être fait seul ou en duo.
