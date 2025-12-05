@@ -1,12 +1,28 @@
 import json
 from datetime import datetime, date
-
+import requests
 import duckdb
 import pandas as pd
 
 today_date = datetime.now().strftime("%Y-%m-%d")
 
-
+def fetch_population(code_insee: str):
+    """
+    Récupère la population d'une commune à partir de l'API geo.api.gouv.fr
+    en utilisant le code INSEE.
+    """
+    url = f"https://geo.api.gouv.fr/communes/{code_insee}?fields=population&format=json"
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            return data.get("population", None)
+        else:
+            return None
+    except Exception:
+        # En cas d'erreur réseau, on renvoie None
+        return None
+    
 # --------------------------------------------------------
 # 1) CREATE CONSOLIDATE TABLES
 # --------------------------------------------------------
@@ -22,48 +38,49 @@ def create_consolidate_tables():
 
 # --------------------------------------------------------
 # 2) CONSOLIDATE CITY (PARIS + AJOUTER NANTES)
-# --------------------------------------------------------
+# -----------------
+
 def consolidate_city_data():
 
     con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
 
-    # Charger les données Paris
+    # Charger les données Paris (juste pour récupérer les codes INSEE + noms)
     with open(f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json") as fd:
         data = json.load(fd)
 
     raw_data_df = pd.json_normalize(data)
-    raw_data_df["nb_inhabitants"] = None  # pas besoin des habitants
 
-    # Extraire communes depuis Paris
+    # On sélectionne les infos de ville (sans population pour l'instant)
     city_data_df = raw_data_df[[
         "code_insee_commune",
-        "nom_arrondissement_communes",
-        "nb_inhabitants"
-    ]]
+        "nom_arrondissement_communes"
+    ]].drop_duplicates()
 
     city_data_df.rename(columns={
         "code_insee_commune": "id",
         "nom_arrondissement_communes": "name"
     }, inplace=True)
 
-    city_data_df.drop_duplicates(inplace=True)
-
-    # 🔵 Ajouter Nantes manuellement (nécessaire car pas dans l’API Vélib)
+    # 🔵 Ajouter Nantes manuellement (elle n’est pas dans les données Vélib)
     nantes_row = {
-        "id": "44109",         # code INSEE Nantes
-        "name": "Nantes",
-        "nb_inhabitants": None
+        "id": "44109",   # code INSEE Nantes
+        "name": "Nantes"
     }
     city_data_df = pd.concat(
         [city_data_df, pd.DataFrame([nantes_row])],
         ignore_index=True
     ).drop_duplicates(subset=["id"])
 
+    # 🔥 Récupérer la population via l'API des communes
+    city_data_df["nb_inhabitants"] = city_data_df["id"].apply(fetch_population)
+
+    # Ajout de la date de création (historisation)
     city_data_df["created_date"] = date.today()
 
     print("\n---- City DF preview ----")
     print(city_data_df.head())
 
+    # Insertion dans la table de consolidation
     con.execute("INSERT OR REPLACE INTO CONSOLIDATE_CITY SELECT * FROM city_data_df;")
 
 

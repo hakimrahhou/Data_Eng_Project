@@ -274,8 +274,7 @@ FROM DIM_CITY dm INNER JOIN (
 ) tmp ON dm.ID = tmp.CITY_ID
 WHERE lower(dm.NAME) in ('paris', 'nantes', 'vincennes', 'toulouse');
 
-![Pr](images/img1.png)
-
+(
 
 -- Nb de vélos disponibles en moyenne dans chaque station
 SELECT ds.name, ds.code, ds.address, tmp.avg_dock_available
